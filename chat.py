@@ -123,6 +123,7 @@ class Client:
                     amount_received += len(data)
                     print(data.decode('utf-8'))
 
+
 if int(sys.argv[2]):
     print('------------------- Server -------------------')
     server = Server()

@@ -29,22 +29,20 @@ class Server:
             print('waiting for connection')
             client_socket, client_address = self.s.accept()
 
-            try:
-                print('connected to ', client_address)
-                print('---------\n')
+            print('connected to ', client_address)
+            print('---------\n')
 
-                # receive message from connection
-                while True:
+            # receive message from connection
+            while True:
+                readable, writable, exceptional = select.select([sys.stdin, client_socket], [], [])
+
+                if sys.stdin in readable:
+                    message = input(">>> ")
+                    client_socket.sendall(bytes(message, 'utf-8'))
+
+                if client_socket in readable:
                     message = client_socket.recv(4096)
                     print(message.decode('utf-8'))
-                    if message:
-                        client_socket.sendall(message)
-                    else:
-                        print('all data received from ', client_address)
-                        break
-            finally:
-                print('closing connection to ', client_address)
-                client_socket.close()
 
 
 class Client:
@@ -61,13 +59,27 @@ class Client:
         self.run()
 
     def run(self):
-        while True:
-            readable, writable, exceptional = select.select([sys.stdin], [sys.stdout], [])
-            if sys.stdout in writable:
-                # create and send message
-                message = input(">>> ")
-                # print('sending "%s" ' % message)
-                self.s.sendall(bytes(message, 'utf-8'))
+        try:
+
+            while True:
+                readable, writable, exceptional = select.select([sys.stdin, self.s], [], [])
+
+                if sys.stdin in readable:
+                    message = input(">>> ")
+                    self.s.sendall(bytes(message, 'utf-8'))
+                    # print("Client self.s", self.s)
+
+                if self.s in readable:
+                    message = self.s.recv(4096)
+                    print(message.decode('utf-8'))
+        finally:
+            self.s.close()
+
+
+
+
+
+
 
                 # amount_received = 0
                 # amount_expected = len(message)
