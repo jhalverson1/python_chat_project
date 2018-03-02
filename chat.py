@@ -41,8 +41,12 @@ class Server:
                     client_socket.sendall(bytes(message, 'utf-8'))
 
                 if client_socket in readable:
-                    message = client_socket.recv(4096)
-                    print(message.decode('utf-8'))
+                    data = client_socket.recv(4096)
+
+                    if data:
+                        print(data.decode('utf-8'))
+                    else:
+                        break
 
 
 class Client:
