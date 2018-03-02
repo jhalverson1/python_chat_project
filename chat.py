@@ -30,21 +30,18 @@ class Server:
             client_socket, client_address = self.s.accept()
 
             try:
-                print('\n-----\nconnected to ', client_address)
-                print('-----')
+                print('connected to ', client_address)
+                print('---------\n')
 
-                # receive data from connection
-                readable, writable, exceptional = select.select([sys.stdin], [], [])
-
-                if sys.stdin in readable:
-                    data = client_socket.recv(4096)
-                    print(data.decode('utf-8'))
-                    # print('\nreceived "%s"' % data.decode('utf-8'))
-                    if data:
-                        # print('sending data back to client')
-                        client_socket.sendall(data)
+                # receive message from connection
+                while True:
+                    message = client_socket.recv(4096)
+                    print(message.decode('utf-8'))
+                    if message:
+                        print('\nsending data back to client ')
+                        client_socket.sendall(message)
                     else:
-                        # print('all data received from ', client_address)
+                        print('all data received from ', client_address)
                         break
             finally:
                 print('closing connection to ', client_address)
@@ -53,7 +50,7 @@ class Server:
 
 class Client:
     addressList = [1, 0]
-    if len(sys.argv) == 5:
+    if len(sys.argv) == 4:
         addressList = sys.argv[3].split(':')
 
     address = (addressList[0], int(addressList[1]))
@@ -76,7 +73,7 @@ class Client:
             while amount_received < amount_expected:
                 data = self.s.recv(4096)
                 amount_received += len(data)
-                # print('received "%s" ' % data.decode('utf-8'))
+                print(data.decode('utf-8'))
 
         finally:
             print('closing socket')
