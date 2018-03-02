@@ -38,7 +38,6 @@ class Server:
                     message = client_socket.recv(4096)
                     print(message.decode('utf-8'))
                     if message:
-                        print('\nsending data back to client ')
                         client_socket.sendall(message)
                     else:
                         print('all data received from ', client_address)
@@ -59,25 +58,30 @@ class Client:
     def __init__(self):
         print('connecting to address: %s port: %s' % self.address)
         self.s.connect(self.address)
+        self.run()
 
-        try:
-            # create and send message
-            message = input("\n>>> ")
-            # print('sending "%s" ' % message)
-            self.s.sendall(bytes(message, 'utf-8'))
+    def run(self):
+        while True:
+            readable, writable, exceptional = select.select([sys.stdin], [sys.stdout], [])
+            if sys.stdout in writable:
+                # create and send message
+                message = input(">>> ")
+                # print('sending "%s" ' % message)
+                self.s.sendall(bytes(message, 'utf-8'))
 
-            amount_received = 0
-            amount_expected = len(message)
+                amount_received = 0
+                amount_expected = len(message)
 
-            # listen and receive response until the number of bytes that we sent is received
-            while amount_received < amount_expected:
-                data = self.s.recv(4096)
-                amount_received += len(data)
-                print(data.decode('utf-8'))
+                # listen and receive response until the number of bytes that we sent is received
+                while amount_received < amount_expected:
+                    data = self.s.recv(4096)
+                    amount_received += len(data)
+                    print(data.decode('utf-8'))
 
-        finally:
-            print('closing socket')
-            self.s.close()
+            # finally:
+            #     print('closing socket')
+            #     self.s.close()
+
 
 
 if int(sys.argv[2]):
