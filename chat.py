@@ -26,25 +26,27 @@ class Server:
         while True:
 
             # accept blocks until a connection is received
-            print('waiting for connection')
+            print('waiting for connection...')
             client_socket, client_address = self.s.accept()
 
-            print('connected to ', client_address)
-            print('---------\n')
+            # output for after connection
+            print('------------------- Server -------------------')
+            print('connected to address: %s port: %s ' % client_address)
+            print('.....\n.....\n.....')
 
             # receive message from connection
             while True:
                 readable, writable, exceptional = select.select([sys.stdin, client_socket], [], [])
 
                 if sys.stdin in readable:
-                    message = input(">>> ")
+                    message = input('')
                     client_socket.sendall(bytes(message, 'utf-8'))
 
                 if client_socket in readable:
                     data = client_socket.recv(4096)
 
                     if data:
-                        print(data.decode('utf-8'))
+                        print('Buddy: ', data.decode('utf-8'))
                     else:
                         break
 
@@ -59,6 +61,7 @@ class Client:
 
     def __init__(self):
         print('connecting to address: %s port: %s' % self.address)
+        print('.....\n.....\n.....')
         self.s.connect(self.address)
         self.run()
 
@@ -70,20 +73,20 @@ class Client:
                 readable, writable, exceptional = select.select([sys.stdin, self.s], [], [])
 
                 if sys.stdin in readable:
-                    message = input(">>> ")
+                    message = input('')
                     self.s.sendall(bytes(message, 'utf-8'))
 
                 if self.s in readable:
                     data = self.s.recv(4096)
 
                     if data:
-                        print(data.decode('utf-8'))
+                        print('Friend: ', data.decode('utf-8'))
                     else:
                         break
         finally:
             self.s.close()
 
-            
+
 # Port argument is a non-zero number
 if int(sys.argv[2]):
     print('------------------- Server -------------------')
