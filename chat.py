@@ -5,6 +5,7 @@
 import sys
 import socket
 import select
+import queue
 
 
 class Server:
@@ -22,29 +23,73 @@ class Server:
         self.s.listen(1)
 
     def run(self):
-        # repeatedly listen and wait for connections
-        while True:
+        # list of objects to check for incoming data to be read
+        inputs = [self.s]
+        # list of objects to check for outgoing data to be written
+        outputs = []
 
-            # accept blocks until a connection is received
-            print('waiting for connection')
-            client_socket, client_address = self.s.accept()
+        message_queue = {}
 
-            try:
-                print('connected to ', client_address)
-                print('---------\n')
+        # for each connection we are monitoring
+        while inputs:
 
-                # receive message from connection
-                while True:
-                    message = client_socket.recv(4096)
-                    print(message.decode('utf-8'))
-                    if message:
-                        client_socket.sendall(message)
+            # wait for something to happen
+            readable, writable, exceptional = select.select(inputs, outputs, inputs)
+
+            # loop through the list of readable objects
+            for current_read in readable:
+
+                # there is an incoming connection
+                if current_read is self.s:
+                    client_socket, client_address = current_read.accept()
+                    print('\nNew connection from ', client_address, '\n')
+                    client_socket.setblocking(0)
+                    inputs.append(client_socket)
+
+                    # keep a queue for data we want to send across the new connection
+                    message_queue[client_socket] = queue.Queue()
+
+                # a connection has data for us to read
+                else:
+                    data = current_read.recv(256)
+
+                    # if there is data send it back to the client
+                    if data:
+                        print(data.decode('utf-8'))
+                        message_queue[current_read].put(data)
+
+                        #
+                        if current_read not in outputs:
+                            outputs.append(current_read)
+
+                    # if there is no data (data is empty) just close the connection
                     else:
-                        print('all data received from ', client_address)
-                        break
-            finally:
-                print('closing connection to ', client_address)
-                client_socket.close()
+                        print('...closing connection to ', current_read.getpeername())
+
+                        # remove from outputs if possible
+                        if current_read in outputs:
+                            outputs.remove(current_read)
+
+                        # remove from inputs, close connection, and delete from message queue
+                        inputs.remove(current_read)
+                        current_read.close()
+                        del message_queue[current_read]
+                        print('\nWaiting for new connection...')
+
+            # for each available connection with a pending write, write
+            for current_write in writable:
+                try:
+                    msg = message_queue[current_write].get_nowait()
+
+                # no messages waiting so remove from outputs
+                except queue.Empty:
+                    # print('output queue for ', current_write.getpeername(), ' is empty')
+                    outputs.remove(current_write)
+
+                # send message
+                else:
+                    # print('sending "%s" to %s' % (msg, current_write.getpeername()))
+                    current_write.send(msg)
 
 
 class Client:
@@ -69,14 +114,14 @@ class Client:
                 # print('sending "%s" ' % message)
                 self.s.sendall(bytes(message, 'utf-8'))
 
-                # amount_received = 0
-                # amount_expected = len(message)
-                #
-                # # listen and receive response until the number of bytes that we sent is received
-                # while amount_received < amount_expected:
-                #     data = self.s.recv(4096)
-                #     amount_received += len(data)
-                #     print(data.decode('utf-8'))
+                amount_received = 0
+                amount_expected = len(message)
+
+                # listen and receive response until the number of bytes that we sent is received
+                while amount_received < amount_expected:
+                    data = self.s.recv(4096)
+                    amount_received += len(data)
+                    print(data.decode('utf-8'))
 
 if int(sys.argv[2]):
     print('------------------- Server -------------------')
