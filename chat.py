@@ -65,39 +65,32 @@ class Client:
     def run(self):
         try:
 
+            # receive message from connection
             while True:
                 readable, writable, exceptional = select.select([sys.stdin, self.s], [], [])
 
                 if sys.stdin in readable:
                     message = input(">>> ")
                     self.s.sendall(bytes(message, 'utf-8'))
-                    # print("Client self.s", self.s)
 
                 if self.s in readable:
-                    message = self.s.recv(4096)
-                    print(message.decode('utf-8'))
+                    data = self.s.recv(4096)
+
+                    if data:
+                        print(data.decode('utf-8'))
+                    else:
+                        break
         finally:
             self.s.close()
 
-
-
-
-
-
-
-                # amount_received = 0
-                # amount_expected = len(message)
-                #
-                # # listen and receive response until the number of bytes that we sent is received
-                # while amount_received < amount_expected:
-                #     data = self.s.recv(4096)
-                #     amount_received += len(data)
-                #     print(data.decode('utf-8'))
-
+            
+# Port argument is a non-zero number
 if int(sys.argv[2]):
     print('------------------- Server -------------------')
     server = Server()
     server.run()
+
+# Port argument is 0
 else:
     print('------------------- Client -------------------')
     client = Client()
