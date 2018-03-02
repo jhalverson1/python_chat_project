@@ -69,20 +69,14 @@ class Client:
                 # print('sending "%s" ' % message)
                 self.s.sendall(bytes(message, 'utf-8'))
 
-                amount_received = 0
-                amount_expected = len(message)
-
-                # listen and receive response until the number of bytes that we sent is received
-                while amount_received < amount_expected:
-                    data = self.s.recv(4096)
-                    amount_received += len(data)
-                    print(data.decode('utf-8'))
-
-            # finally:
-            #     print('closing socket')
-            #     self.s.close()
-
-
+                # amount_received = 0
+                # amount_expected = len(message)
+                #
+                # # listen and receive response until the number of bytes that we sent is received
+                # while amount_received < amount_expected:
+                #     data = self.s.recv(4096)
+                #     amount_received += len(data)
+                #     print(data.decode('utf-8'))
 
 if int(sys.argv[2]):
     print('------------------- Server -------------------')
