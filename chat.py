@@ -158,3 +158,6 @@ if sys.argv[1] == "-direct":
     else:
         print('------------------- Client -------------------')
         client = Client()
+
+if sys.argv[1] == "-topic":
+    print("Topic mode engaged")
