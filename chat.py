@@ -175,7 +175,7 @@ class ClientTopic:
 
                 if sys.stdin in readable:
                     message = input('')
-                    json_message = self.build_json("direct", message)
+                    json_message = self.build_json(self.topic, message)
                     json_string = json.dumps(json_message)
                     self.s.sendall(json_string.encode('utf-8'))
 

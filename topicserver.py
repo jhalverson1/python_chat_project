@@ -3,6 +3,7 @@ import socket
 import sys
 import queue
 import select
+import json
 
 print('...\n...\n...')
 
@@ -14,6 +15,7 @@ class Server:
     inputs = [s]
     outputs = []
     message_queue = {}
+    topic_dictionary = {}
 
     def __init__(self):
         print('binding to address: %s port: %s' % self.address)
@@ -27,7 +29,6 @@ class Server:
         while True:
 
             # Wait for something to happen
-            print('Waiting...')
             readable, writable, exceptional = select.select(self.inputs, self.outputs, self.inputs)
 
             # loop through list of readable objects
@@ -40,10 +41,27 @@ class Server:
                     client_socket.setblocking(0)
                     self.inputs.append(client_socket)
                     print("Number of Connections Outside Connections: ", len(self.inputs) - 1)
-                    print('inputs', self.inputs)
 
                     # keep a queue for data we want to send across the new connection
                     self.message_queue[client_socket] = queue.Queue()
+
+                # connection has data for us
+                else:
+                    data = current_read.recv(4096)
+
+                    # if there is data, send it to all clients in the sender's topic
+                    if data:
+                        json_data = json.loads(data.decode('utf-8'))
+                        message_topic = json_data["message"]["topic"]
+                        message_text = json_data["message"]["text"]
+                        print(message_topic, ":", message_text)
+
+                    # if there is no data, close the connection
+                    else:
+                        self.inputs.remove(current_read)
+                        current_read.close()
+                        del self.message_queue[current_read]
+
 
 
 if sys.argv[1] == "-topic":
