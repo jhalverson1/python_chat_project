@@ -40,13 +40,10 @@ class Server:
                     client_socket.setblocking(0)
                     self.inputs.append(client_socket)
                     print("Number of Connections Outside Connections: ", len(self.inputs) - 1)
+                    print('inputs', self.inputs)
 
                     # keep a queue for data we want to send across the new connection
                     self.message_queue[client_socket] = queue.Queue()
-
-
-
-
 
 
 if sys.argv[1] == "-topic":
