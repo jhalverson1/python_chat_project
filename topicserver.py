@@ -40,7 +40,6 @@ class Server:
                     print('New connection from ', client_address)
                     client_socket.setblocking(0)
                     self.inputs.append(client_socket)
-                    print("Number of Connections Outside Connections: ", len(self.inputs) - 1)
 
                     # keep a queue for data we want to send across the new connection
                     self.message_queue[client_socket] = queue.Queue()
@@ -62,13 +61,15 @@ class Server:
                             else:
                                 self.topic_dictionary[topic] = [client_socket]
 
-                            print('current number of connections in', topic, len(self.topic_dictionary[topic]))
-
                         # process message
                         elif len(json_data) == 3:
                             message_topic = json_data["message"]["topic"]
                             message_text = json_data["message"]["text"]
                             print(message_topic, ":", message_text)
+
+                            # send message to all subscribers to the topic
+                            for subscriber in self.topic_dictionary[message_topic]:
+                                subscriber.sendall(data)
 
                     # if there is no data, close the connection
                     else:
@@ -79,7 +80,6 @@ class Server:
                             for socket in self.topic_dictionary[topic]:
                                 if socket == current_read:
                                     self.topic_dictionary[topic].remove(socket)
-                                    print('New number of connections to', topic, len(self.topic_dictionary[topic]))
 
 
                         current_read.close()
