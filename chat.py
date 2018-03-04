@@ -5,12 +5,14 @@
 import sys
 import socket
 import select
+import json
 
 
 class Server:
     port = int(sys.argv[2])
     address = ('127.0.0.1', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_address = ''
 
     def __init__(self):
 
@@ -27,11 +29,11 @@ class Server:
 
             # accept blocks until a connection is received
             print('waiting for connection...')
-            client_socket, client_address = self.s.accept()
+            client_socket, self.client_address = self.s.accept()
 
             # output for after connection
             print('------------------- Server -------------------')
-            print('connected to address: %s port: %s ' % client_address)
+            print('connected to address: %s port: %s ' % self.client_address)
             print('.....\n.....\n.....')
 
             # receive message from connection
@@ -40,15 +42,44 @@ class Server:
 
                 if sys.stdin in readable:
                     message = input('')
-                    client_socket.sendall(bytes(message, 'utf-8'))
+                    json_message = self.build_json("direct", message)
+                    json_string = json.dumps(json_message)
+                    client_socket.sendall(json_string.encode('utf-8'))
 
                 if client_socket in readable:
                     data = client_socket.recv(4096)
 
                     if data:
-                        print('Buddy: ', data.decode('utf-8'))
+                        json_data = json.loads(data.decode('utf-8'))
+                        message_topic = json_data["message"]["topic"]
+                        message_text = json_data["message"]["text"]
+                        print(message_topic, ":", message_text)
                     else:
                         break
+
+    def build_json(self, topic, text):
+
+        # includes ip and port of the source
+        source = {"ip": self.address,
+                  "port": self.port
+                  }
+
+        # includes ip and port of the destination
+        destination = {"ip": self.client_address[0],
+                       "port": self.client_address[1]
+                       }
+
+        # includes message topic and message text
+        message = {"topic": topic,
+                   "text": text
+                   }
+
+        # configure json message
+        json_message = {"source": source,
+                        "destination": destination,
+                        "message": message}
+
+        return json_message
 
 
 class Client:
@@ -74,26 +105,56 @@ class Client:
 
                 if sys.stdin in readable:
                     message = input('')
-                    self.s.sendall(bytes(message, 'utf-8'))
+                    json_message = self.build_json("direct", message)
+                    json_string = json.dumps(json_message)
+                    self.s.sendall(json_string.encode('utf-8'))
 
                 if self.s in readable:
                     data = self.s.recv(4096)
 
                     if data:
-                        print('Friend: ', data.decode('utf-8'))
+                        json_data = json.loads(data.decode('utf-8'))
+                        message_topic = json_data["message"]["topic"]
+                        message_text = json_data["message"]["text"]
+                        print(message_topic, ":", message_text)
                     else:
                         break
         finally:
             self.s.close()
 
+    def build_json(self, topic, text):
 
-# Port argument is a non-zero number
-if int(sys.argv[2]):
-    print('------------------- Server -------------------')
-    server = Server()
-    server.run()
+        # includes ip and port of the source
+        source = {"ip": self.addressList[0],
+                  "port": self.addressList[1]
+                  }
 
-# Port argument is 0
-else:
-    print('------------------- Client -------------------')
-    client = Client()
+        # includes ip and port of the destination
+        destination = {"ip": self.addressList[0],
+                       "port": self.addressList[1]
+                       }
+
+        # includes message topic and message text
+        message = {"topic": topic,
+                   "text": text
+                   }
+
+        # configure json message
+        json_message = {"source": source,
+                        "destination": destination,
+                        "message": message}
+
+        return json_message
+
+
+if sys.argv[1] == "-direct":
+    # Port argument is a non-zero number
+    if int(sys.argv[2]):
+        print('------------------- Server -------------------')
+        server = Server()
+        server.run()
+
+    # Port argument is 0
+    else:
+        print('------------------- Client -------------------')
+        client = Client()
