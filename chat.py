@@ -84,7 +84,8 @@ class Server:
         return json_message
 
 
-class ClientData:
+class ClientDirect:
+    
     addressList = [1, 0]
     if len(sys.argv) == 4:
         addressList = sys.argv[3].split(':')
@@ -108,7 +109,8 @@ class ClientData:
 
                 if sys.stdin in readable:
                     message = input('')
-                    json_message = self.build_json_message("direct", message)
+                    source_port = self.s.getsockname()[1]
+                    json_message = self.build_json_message("direct", message, source_port)
                     json_string = json.dumps(json_message)
                     self.s.sendall(json_string.encode('utf-8'))
 
@@ -125,11 +127,11 @@ class ClientData:
         finally:
             self.s.close()
 
-    def build_json_message(self, topic, text):
+    def build_json_message(self, topic, text, source_port):
 
         # includes ip and port of the source
         source = {"ip": self.addressList[0],
-                  "port": self.addressList[1]
+                  "port": source_port
                   }
 
         # includes ip and port of the destination
@@ -153,7 +155,9 @@ class ClientData:
 class ClientTopic:
 
     addressList = sys.argv[2].split(':')
-    address = (addressList[0], int(addressList[1]))
+    address = ('', 0)
+    if len(addressList) == 2:
+        address = (addressList[0], int(addressList[1]))
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     topic = ''
     if len(sys.argv) == 4:
@@ -166,7 +170,8 @@ class ClientTopic:
         self.s.connect(self.address)
 
         # register with new connection and send info
-        json_registration = self.build_json_registration(self.topic)
+        source_port = self.s.getsockname()[1]
+        json_registration = self.build_json_registration(self.topic, source_port)
         json_string = json.dumps(json_registration)
         self.s.sendall(json_string.encode('utf-8'))
 
@@ -182,7 +187,8 @@ class ClientTopic:
 
                 if sys.stdin in readable:
                     message = input('')
-                    json_message = self.build_json_message(self.topic, message)
+                    source_port = self.s.getsockname()[1]
+                    json_message = self.build_json_message(self.topic, message, source_port)
                     json_string = json.dumps(json_message)
                     self.s.sendall(json_string.encode('utf-8'))
 
@@ -200,11 +206,11 @@ class ClientTopic:
         finally:
             self.s.close()
 
-    def build_json_message(self, topic, text):
+    def build_json_message(self, topic, text, source_port):
 
         # includes ip and port of the source
         source = {"ip": self.addressList[0],
-                  "port": self.addressList[1]
+                  "port": source_port
                   }
 
         # includes ip and port of the destination
@@ -224,11 +230,11 @@ class ClientTopic:
 
         return json_message
 
-    def build_json_registration(self, topic):
+    def build_json_registration(self, topic, source_port):
 
         # source includes ip and port
         source = {"ip": self.addressList[0],
-                  "port": self.addressList[1]
+                  "port": source_port
                   }
 
         # configure json message
@@ -237,6 +243,7 @@ class ClientTopic:
                         }
 
         return json_message
+
 
 if sys.argv[1] == "-direct":
     # Port argument is a non-zero number
@@ -248,7 +255,7 @@ if sys.argv[1] == "-direct":
     # Port argument is 0
     else:
         print('------------------- Client -------------------')
-        client = ClientData()
+        client = ClientDirect()
 
 if sys.argv[1] == "-topic":
     print('------------------- Client -------------------')

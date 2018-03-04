@@ -1,3 +1,6 @@
+"""
+@author Jon Halverson
+"""
 
 import socket
 import sys
@@ -9,12 +12,12 @@ print('...\n...\n...')
 
 
 class Server:
-    port = sys.argv[2]
+
+    port = sys.argv[1]
     address = ('127.0.0.1', int(port))
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     inputs = [s]
     outputs = []
-    message_queue = {}
     topic_dictionary = {}
 
     def __init__(self):
@@ -37,12 +40,8 @@ class Server:
                 # there is an incoming connection
                 if current_read is self.s:
                     client_socket, client_address = current_read.accept()
-                    print('New connection from ', client_address)
                     client_socket.setblocking(0)
                     self.inputs.append(client_socket)
-
-                    # keep a queue for data we want to send across the new connection
-                    self.message_queue[client_socket] = queue.Queue()
 
                 # connection has data for us
                 else:
@@ -56,6 +55,7 @@ class Server:
                         if len(json_data) == 2:
                             json_registration = json.loads(data.decode('utf-8'))
                             topic = json_registration['topics']
+                            print(client_address, "connected to topic:", topic)
                             if topic in self.topic_dictionary:
                                 self.topic_dictionary[topic].append(client_socket)
                             else:
@@ -65,7 +65,9 @@ class Server:
                         elif len(json_data) == 3:
                             message_topic = json_data["message"]["topic"]
                             message_text = json_data["message"]["text"]
-                            print(message_topic, ":", message_text)
+
+                            # Uncomment to print message in server as well
+                            # print(message_topic, ":", message_text)
 
                             # send message to all subscribers to the topic
                             for subscriber in self.topic_dictionary[message_topic]:
@@ -81,15 +83,9 @@ class Server:
                                 if socket == current_read:
                                     self.topic_dictionary[topic].remove(socket)
 
-
                         current_read.close()
-                        del self.message_queue[current_read]
 
 
+server = Server()
+server.run()
 
-if sys.argv[1] == "-topic":
-    server = Server()
-    server.run()
-
-if sys.argv[1] == "-direct":
-    print("topicserver.py cannot be launched in -direct mode, try -topic.")
