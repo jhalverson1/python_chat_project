@@ -44,7 +44,7 @@ class Server:
 
                 if sys.stdin in readable:
                     message = input('')
-                    json_message = self.build_json("direct", message)
+                    json_message = self.build_json_message("direct", message)
                     json_string = json.dumps(json_message)
                     client_socket.sendall(json_string.encode('utf-8'))
 
@@ -59,7 +59,7 @@ class Server:
                     else:
                         break
 
-    def build_json(self, topic, text):
+    def build_json_message(self, topic, text):
 
         # includes ip and port of the source
         source = {"ip": self.address,
@@ -108,7 +108,7 @@ class ClientData:
 
                 if sys.stdin in readable:
                     message = input('')
-                    json_message = self.build_json("direct", message)
+                    json_message = self.build_json_message("direct", message)
                     json_string = json.dumps(json_message)
                     self.s.sendall(json_string.encode('utf-8'))
 
@@ -125,7 +125,7 @@ class ClientData:
         finally:
             self.s.close()
 
-    def build_json(self, topic, text):
+    def build_json_message(self, topic, text):
 
         # includes ip and port of the source
         source = {"ip": self.addressList[0],
@@ -164,6 +164,13 @@ class ClientTopic:
         print('connecting to address: %s port: %s' % self.address)
         print('.....\n.....\n.....')
         self.s.connect(self.address)
+
+        # register with new connection and send info
+        json_registration = self.build_json_registration(self.topic)
+        json_string = json.dumps(json_registration)
+        self.s.sendall(json_string.encode('utf-8'))
+
+        # run server
         self.run()
 
     def run(self):
@@ -175,7 +182,7 @@ class ClientTopic:
 
                 if sys.stdin in readable:
                     message = input('')
-                    json_message = self.build_json(self.topic, message)
+                    json_message = self.build_json_message(self.topic, message)
                     json_string = json.dumps(json_message)
                     self.s.sendall(json_string.encode('utf-8'))
 
@@ -183,6 +190,7 @@ class ClientTopic:
                     data = self.s.recv(4096)
 
                     if data:
+
                         json_data = json.loads(data.decode('utf-8'))
                         message_topic = json_data["message"]["topic"]
                         message_text = json_data["message"]["text"]
@@ -192,7 +200,7 @@ class ClientTopic:
         finally:
             self.s.close()
 
-    def build_json(self, topic, text):
+    def build_json_message(self, topic, text):
 
         # includes ip and port of the source
         source = {"ip": self.addressList[0],
@@ -216,6 +224,19 @@ class ClientTopic:
 
         return json_message
 
+    def build_json_registration(self, topic):
+
+        # source includes ip and port
+        source = {"ip": self.addressList[0],
+                  "port": self.addressList[1]
+                  }
+
+        # configure json message
+        json_message = {"source": source,
+                        "topics": topic
+                        }
+
+        return json_message
 
 if sys.argv[1] == "-direct":
     # Port argument is a non-zero number

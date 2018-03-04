@@ -52,13 +52,36 @@ class Server:
                     # if there is data, send it to all clients in the sender's topic
                     if data:
                         json_data = json.loads(data.decode('utf-8'))
-                        message_topic = json_data["message"]["topic"]
-                        message_text = json_data["message"]["text"]
-                        print(message_topic, ":", message_text)
+
+                        # register client
+                        if len(json_data) == 2:
+                            json_registration = json.loads(data.decode('utf-8'))
+                            topic = json_registration['topics']
+                            if topic in self.topic_dictionary:
+                                self.topic_dictionary[topic].append(client_socket)
+                            else:
+                                self.topic_dictionary[topic] = [client_socket]
+
+                            print('current number of connections in', topic, len(self.topic_dictionary[topic]))
+
+                        # process message
+                        elif len(json_data) == 3:
+                            message_topic = json_data["message"]["topic"]
+                            message_text = json_data["message"]["text"]
+                            print(message_topic, ":", message_text)
 
                     # if there is no data, close the connection
                     else:
                         self.inputs.remove(current_read)
+
+                        # remove from topics list, the ugly solution
+                        for topic in self.topic_dictionary:
+                            for socket in self.topic_dictionary[topic]:
+                                if socket == current_read:
+                                    self.topic_dictionary[topic].remove(socket)
+                                    print('New number of connections to', topic, len(self.topic_dictionary[topic]))
+
+
                         current_read.close()
                         del self.message_queue[current_read]
 
